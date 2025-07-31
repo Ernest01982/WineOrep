@@ -40,8 +40,8 @@ export class PDFService {
     orderItems.forEach((item) => {
       doc.text(item.product.name, 20, yPosition);
       doc.text(item.quantity.toString(), 100, yPosition);
-      doc.text(`$${item.price.toFixed(2)}`, 130, yPosition);
-      const lineTotal = item.quantity * item.price;
+      doc.text(`$${item.unit_price.toFixed(2)}`, 130, yPosition);
+      const lineTotal = item.quantity * item.unit_price;
       doc.text(`$${lineTotal.toFixed(2)}`, 160, yPosition);
       
       subtotal += lineTotal;

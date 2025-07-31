@@ -80,7 +80,7 @@ export function OrderForm() {
         order_id: '',
         product_id: product.id,
         quantity: 1,
-        price: product.price,
+        unit_price: product.price,
         sync_status: 'pending',
         created_at: new Date().toISOString(),
         product
@@ -110,7 +110,7 @@ export function OrderForm() {
   };
 
   const calculateSubtotal = () => {
-    return orderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+    return orderItems.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
   };
 
   const calculateDiscount = () => {
@@ -256,7 +256,7 @@ export function OrderForm() {
               <div key={item.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
                 <div className="flex-1">
                   <p className="font-medium text-gray-900">{item.product.name}</p>
-                  <p className="text-sm text-gray-600">${item.price.toFixed(2)} each</p>
+                  <p className="text-sm text-gray-600">${item.unit_price.toFixed(2)} each</p>
                 </div>
                 
                 <div className="flex items-center space-x-2">
@@ -277,7 +277,7 @@ export function OrderForm() {
                   </button>
                   
                   <div className="w-20 text-right">
-                    <span className="font-medium">${(item.quantity * item.price).toFixed(2)}</span>
+                    <span className="font-medium">${(item.quantity * item.unit_price).toFixed(2)}</span>
                   </div>
                   
                   <button
