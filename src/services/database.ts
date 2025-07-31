@@ -20,7 +20,6 @@ export class DatabaseService {
     const { data, error } = await supabase
       .from('products')
       .select('*')
-      .eq('in_stock', true)
       .order('name');
     
     if (error) throw error;
@@ -30,12 +29,9 @@ export class DatabaseService {
   static async getRepTasks(repId: string) {
     const { data, error } = await supabase
       .from('rep_tasks')
-      .select(`
-        *,
-        task_types (name, description)
-      `)
+      .select('*')
       .eq('rep_id', repId)
-      .order('due_date', { nullsFirst: false });
+      .order('created_at', { ascending: false });
     
     if (error) throw error;
     return data;
@@ -45,7 +41,34 @@ export class DatabaseService {
     const { data, error } = await supabase
       .from('stock_discount_reasons')
       .select('*')
-      .order('reason');
+      .order('label');
+    
+    if (error) throw error;
+    return data;
+  }
+
+  static async getCurrentRep() {
+    // For demo purposes, return the first rep
+    // In production, this would be based on authentication
+    const { data, error } = await supabase
+      .from('reps')
+      .select('*')
+      .limit(1)
+      .single();
+    
+    if (error) throw error;
+    return data;
+  }
+
+  static async getClientProducts(clientId: string) {
+    const { data, error } = await supabase
+      .from('client_products')
+      .select(`
+        *,
+        products (*)
+      `)
+      .eq('client_id', clientId)
+      .eq('listed', true);
     
     if (error) throw error;
     return data;

@@ -1,22 +1,48 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, MapPin, FileText, CheckCircle } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { OfflineService } from '../services/offline';
+import { DatabaseService } from '../services/database';
 import { Visit, Client } from '../types';
 
 export function VisitLogger() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [activeVisit, setActiveVisit] = useState<Visit | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState('');
   const [notes, setNotes] = useState('');
   const [visitType, setVisitType] = useState<'good' | 'missed' | 'problem' | 'bad'>('good');
+  const [currentRep, setCurrentRep] = useState<any>(null);
 
   useEffect(() => {
+    loadCurrentRep();
     loadClients();
+    
+    // Check if client was pre-selected from navigation
+    if (location.state?.selectedClient) {
+      setSelectedClientId(location.state.selectedClient.id);
+    }
   }, []);
+
+  const loadCurrentRep = async () => {
+    try {
+      const rep = await DatabaseService.getCurrentRep();
+      setCurrentRep(rep);
+    } catch (error) {
+      console.error('Failed to load current rep:', error);
+    }
+  };
 
   const loadClients = async () => {
     try {
-      const clientList = await OfflineService.getClients();
+      let clientList;
+      try {
+        clientList = await DatabaseService.getClients();
+        await OfflineService.saveClients(clientList);
+      } catch (error) {
+        clientList = await OfflineService.getClients();
+      }
       setClients(clientList);
     } catch (error) {
       console.error('Failed to load clients:', error);
@@ -26,10 +52,12 @@ export function VisitLogger() {
   const startVisit = async () => {
     if (!selectedClientId) return;
 
+    const repId = currentRep?.id || 'demo-rep-id';
     const visit: Visit = {
       id: crypto.randomUUID(),
-      rep_id: 'current-rep-id',
+      rep_id: repId,
       client_id: selectedClientId,
+      visit_date: new Date().toISOString().split('T')[0],
       check_in_time: new Date().toISOString(),
       sync_status: 'pending',
       created_at: new Date().toISOString()
@@ -40,6 +68,7 @@ export function VisitLogger() {
       setActiveVisit(visit);
     } catch (error) {
       console.error('Failed to start visit:', error);
+      alert('Failed to start visit. Please try again.');
     }
   };
 
@@ -60,8 +89,11 @@ export function VisitLogger() {
       setSelectedClientId('');
       setNotes('');
       setVisitType('good');
+      alert('Visit logged successfully!');
+      navigate('/');
     } catch (error) {
       console.error('Failed to end visit:', error);
+      alert('Failed to end visit. Please try again.');
     }
   };
 
@@ -109,11 +141,11 @@ export function VisitLogger() {
               <div className="p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center text-sm text-gray-600 mb-1">
                   <MapPin size={14} className="mr-1" />
-                  {selectedClient.address}
+                  {selectedClient.location || 'No location specified'}
                 </div>
-                {selectedClient.contact_person && (
+                {selectedClient.contact_name && (
                   <p className="text-sm text-gray-600">
-                    Contact: {selectedClient.contact_person}
+                    Contact: {selectedClient.contact_name}
                   </p>
                 )}
               </div>
@@ -147,7 +179,7 @@ export function VisitLogger() {
             {selectedClient && (
               <div className="mt-2">
                 <p className="font-medium text-green-900">{selectedClient.name}</p>
-                <p className="text-sm text-green-700">{selectedClient.address}</p>
+                <p className="text-sm text-green-700">{selectedClient.location || 'No location specified'}</p>
               </div>
             )}
           </div>

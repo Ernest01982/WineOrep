@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Minus, Download, Trash2 } from 'lucide-react';
 import { OfflineService } from '../services/offline';
+import { DatabaseService } from '../services/database';
 import { PDFService } from '../services/pdf';
 import { Product, Order, OrderItem, Client, StockDiscountReason } from '../types';
 
@@ -17,28 +18,50 @@ export function OrderForm() {
   const [isFreeStock, setIsFreeStock] = useState(false);
   const [discountPercentage, setDiscountPercentage] = useState(0);
   const [selectedDiscountReason, setSelectedDiscountReason] = useState('');
+  const [freeStockReason, setFreeStockReason] = useState('');
+  const [orderNotes, setOrderNotes] = useState('');
   const [loading, setLoading] = useState(true);
+  const [currentRep, setCurrentRep] = useState<any>(null);
 
   useEffect(() => {
+    loadCurrentRep();
     loadData();
   }, []);
 
+  const loadCurrentRep = async () => {
+    try {
+      const rep = await DatabaseService.getCurrentRep();
+      setCurrentRep(rep);
+    } catch (error) {
+      console.error('Failed to load current rep:', error);
+    }
+  };
+
   const loadData = async () => {
     try {
-      const [clientList, productList] = await Promise.all([
-        OfflineService.getClients(),
-        OfflineService.getProducts()
-      ]);
+      let clientList, productList, reasonsList;
+      
+      try {
+        [clientList, productList, reasonsList] = await Promise.all([
+          DatabaseService.getClients(),
+          DatabaseService.getProducts(),
+          DatabaseService.getDiscountReasons()
+        ]);
+        
+        await OfflineService.saveClients(clientList);
+        await OfflineService.saveProducts(productList);
+      } catch (error) {
+        console.log('Loading from offline storage...');
+        [clientList, productList] = await Promise.all([
+          OfflineService.getClients(),
+          OfflineService.getProducts()
+        ]);
+        reasonsList = [];
+      }
       
       setClients(clientList);
       setProducts(productList);
-      
-      // Mock discount reasons for demo
-      setDiscountReasons([
-        { id: '1', reason: 'Volume Discount', max_discount_percentage: 15, created_at: '' },
-        { id: '2', reason: 'Customer Loyalty', max_discount_percentage: 10, created_at: '' },
-        { id: '3', reason: 'End of Season', max_discount_percentage: 25, created_at: '' }
-      ]);
+      setDiscountReasons(reasonsList || []);
     } catch (error) {
       console.error('Failed to load data:', error);
     } finally {
@@ -57,8 +80,7 @@ export function OrderForm() {
         order_id: '',
         product_id: product.id,
         quantity: 1,
-        unit_price: product.unit_price,
-        line_total: product.unit_price,
+        price: product.price,
         sync_status: 'pending',
         created_at: new Date().toISOString(),
         product
@@ -77,7 +99,7 @@ export function OrderForm() {
     setOrderItems(items =>
       items.map(item =>
         item.id === itemId
-          ? { ...item, quantity: newQuantity, line_total: newQuantity * item.unit_price }
+          ? { ...item, quantity: newQuantity }
           : item
       )
     );
@@ -88,7 +110,7 @@ export function OrderForm() {
   };
 
   const calculateSubtotal = () => {
-    return orderItems.reduce((sum, item) => sum + item.line_total, 0);
+    return orderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
   };
 
   const calculateDiscount = () => {
@@ -101,19 +123,35 @@ export function OrderForm() {
   };
 
   const submitOrder = async () => {
-    if (!selectedClientId || orderItems.length === 0) return;
+    if (!selectedClientId || orderItems.length === 0) {
+      alert('Please select a client and add at least one product.');
+      return;
+    }
+
+    if (isFreeStock && !freeStockReason.trim()) {
+      alert('Please provide a reason for free stock.');
+      return;
+    }
+
+    if (discountPercentage > 0 && !selectedDiscountReason) {
+      alert('Please select a discount reason.');
+      return;
+    }
 
     const orderId = crypto.randomUUID();
-    const total = isFreeStock ? 0 : calculateTotal();
+    const repId = currentRep?.id || 'demo-rep-id';
 
     const order: Order = {
       id: orderId,
-      rep_id: 'current-rep-id',
+      rep_id: repId,
       client_id: selectedClientId,
-      total_amount: total,
-      discount_percentage: isFreeStock ? 100 : discountPercentage,
-      discount_reason_id: selectedDiscountReason || undefined,
+      order_date: new Date().toISOString(),
       is_free_stock: isFreeStock,
+      discount_percent: isFreeStock ? 100 : discountPercentage,
+      discount_value: calculateDiscount(),
+      discount_reason: selectedDiscountReason || undefined,
+      free_stock_reason: isFreeStock ? freeStockReason : undefined,
+      notes: orderNotes.trim() || undefined,
       sync_status: 'pending',
       created_at: new Date().toISOString()
     };
@@ -137,6 +175,8 @@ export function OrderForm() {
       setIsFreeStock(false);
       setDiscountPercentage(0);
       setSelectedDiscountReason('');
+      setFreeStockReason('');
+      setOrderNotes('');
       
       alert('Order saved successfully!');
     } catch (error) {
@@ -180,7 +220,7 @@ export function OrderForm() {
         {selectedClient && (
           <div className="mt-3 p-3 bg-gray-50 rounded-lg">
             <p className="font-medium">{selectedClient.name}</p>
-            <p className="text-sm text-gray-600">{selectedClient.address}</p>
+            <p className="text-sm text-gray-600">{selectedClient.location || 'No location specified'}</p>
           </div>
         )}
       </div>
@@ -194,7 +234,7 @@ export function OrderForm() {
               <div className="flex-1">
                 <p className="font-medium text-gray-900">{product.name}</p>
                 <p className="text-sm text-gray-600">{product.sku}</p>
-                <p className="text-sm font-medium text-green-600">${product.unit_price.toFixed(2)}</p>
+                <p className="text-sm font-medium text-green-600">${product.price.toFixed(2)}</p>
               </div>
               <button
                 onClick={() => addProduct(product)}
@@ -216,7 +256,7 @@ export function OrderForm() {
               <div key={item.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
                 <div className="flex-1">
                   <p className="font-medium text-gray-900">{item.product.name}</p>
-                  <p className="text-sm text-gray-600">${item.unit_price.toFixed(2)} each</p>
+                  <p className="text-sm text-gray-600">${item.price.toFixed(2)} each</p>
                 </div>
                 
                 <div className="flex items-center space-x-2">
@@ -237,7 +277,7 @@ export function OrderForm() {
                   </button>
                   
                   <div className="w-20 text-right">
-                    <span className="font-medium">${item.line_total.toFixed(2)}</span>
+                    <span className="font-medium">${(item.quantity * item.price).toFixed(2)}</span>
                   </div>
                   
                   <button
@@ -269,6 +309,21 @@ export function OrderForm() {
               <span className="ml-2 text-sm text-gray-900">Free Stock Order</span>
             </label>
 
+            {isFreeStock && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Free Stock Reason
+                </label>
+                <input
+                  type="text"
+                  value={freeStockReason}
+                  onChange={(e) => setFreeStockReason(e.target.value)}
+                  placeholder="Enter reason for free stock..."
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            )}
+
             {!isFreeStock && (
               <div className="space-y-3">
                 <div>
@@ -296,9 +351,9 @@ export function OrderForm() {
                       className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="">Select reason...</option>
-                      {discountReasons.map(reason => (
+                      {discountReasons.filter(r => r.reason_type === 'discount').map(reason => (
                         <option key={reason.id} value={reason.id}>
-                          {reason.reason} (Max {reason.max_discount_percentage}%)
+                          {reason.label}
                         </option>
                       ))}
                     </select>
@@ -306,6 +361,19 @@ export function OrderForm() {
                 )}
               </div>
             )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Order Notes (Optional)
+              </label>
+              <textarea
+                value={orderNotes}
+                onChange={(e) => setOrderNotes(e.target.value)}
+                placeholder="Add any notes about this order..."
+                rows={2}
+                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
           </div>
         </div>
       )}

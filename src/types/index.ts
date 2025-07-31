@@ -9,11 +9,10 @@ export interface Rep {
 export interface Client {
   id: string;
   name: string;
-  address: string;
-  region: string;
-  phone?: string;
+  location?: string;
+  contact_name?: string;
   email?: string;
-  contact_person?: string;
+  contact_phone?: string;
   created_at: string;
 }
 
@@ -33,9 +32,10 @@ export interface Product {
   id: string;
   name: string;
   sku: string;
-  unit_price: number;
+  price: number;
+  price_ex_vat?: number;
+  price_trade?: number;
   category: string;
-  in_stock: boolean;
   created_at: string;
 }
 
@@ -44,11 +44,14 @@ export interface Order {
   rep_id: string;
   client_id: string;
   visit_id?: string;
-  total_amount: number;
-  discount_percentage?: number;
-  discount_reason_id?: string;
+  order_date: string;
   is_free_stock: boolean;
+  discount_percent?: number;
+  discount_value?: number;
+  discount_reason?: string;
+  free_stock_reason?: string;
   pdf_url?: string;
+  notes?: string;
   sync_status: 'pending' | 'synced' | 'failed';
   created_at: string;
 }
@@ -67,29 +70,22 @@ export interface OrderItem {
 export interface RepTask {
   id: string;
   rep_id: string;
-  task_type_id: string;
   title: string;
   description?: string;
+  task_type?: string;
+  start_date?: string;
+  end_date?: string;
   status: 'pending' | 'in_progress' | 'completed';
-  due_date?: string;
+  created_by?: string;
   completed_at?: string;
-  notes?: string;
-  photo_url?: string;
   sync_status: 'pending' | 'synced' | 'failed';
-  created_at: string;
-}
-
-export interface TaskType {
-  id: string;
-  name: string;
-  description?: string;
   created_at: string;
 }
 
 export interface StockDiscountReason {
   id: string;
-  reason: string;
-  max_discount_percentage: number;
+  reason_type: 'discount' | 'free_stock';
+  label: string;
   created_at: string;
 }
 

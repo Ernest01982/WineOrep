@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Home, Users, ClipboardList, Package, CheckSquare, RotateCcw } from 'lucide-react';
+import { SyncService } from '../services/sync';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -8,6 +9,7 @@ interface LayoutProps {
 
 export function Layout({ children }: LayoutProps) {
   const location = useLocation();
+  const isOnline = SyncService.getConnectionStatus();
 
   const navItems = [
     { path: '/', icon: Home, label: 'Dashboard' },
@@ -24,8 +26,8 @@ export function Layout({ children }: LayoutProps) {
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-gray-900">Rep Dashboard</h1>
           <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <span className="text-sm text-gray-600">Online</span>
+            <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500'}`}></div>
+            <span className="text-sm text-gray-600">{isOnline ? 'Online' : 'Offline'}</span>
           </div>
         </div>
       </header>

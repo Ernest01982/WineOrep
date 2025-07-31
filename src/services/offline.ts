@@ -41,9 +41,9 @@ export class OfflineService {
   }
 
   static async getClients(region?: string) {
-    let query = offlineDb.clients.orderBy('name');
+    const query = offlineDb.clients.orderBy('name');
     if (region) {
-      query = query.filter(client => client.region === region);
+      return await query.filter(client => client.location === region).toArray();
     }
     return await query.toArray();
   }
@@ -52,7 +52,7 @@ export class OfflineService {
     return await offlineDb.clients
       .filter(client => 
         client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        client.contact_person?.toLowerCase().includes(searchTerm.toLowerCase())
+        client.contact_name?.toLowerCase().includes(searchTerm.toLowerCase())
       )
       .toArray();
   }
@@ -148,7 +148,7 @@ export class OfflineService {
       offlineDb.visits
         .where('rep_id')
         .equals(repId)
-        .filter(visit => visit.created_at.startsWith(today))
+        .filter(visit => visit.visit_date === today)
         .count(),
       
       offlineDb.orders

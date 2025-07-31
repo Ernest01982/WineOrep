@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Search, MapPin, Phone, User, Plus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { OfflineService } from '../services/offline';
+import { DatabaseService } from '../services/database';
 import { Client } from '../types';
 
 export function ClientDirectory() {
+  const navigate = useNavigate();
   const [clients, setClients] = useState<Client[]>([]);
   const [filteredClients, setFilteredClients] = useState<Client[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -20,7 +23,15 @@ export function ClientDirectory() {
 
   const loadClients = async () => {
     try {
-      const clientList = await OfflineService.getClients();
+      // Try to load from Supabase first, fallback to offline
+      let clientList;
+      try {
+        clientList = await DatabaseService.getClients();
+        await OfflineService.saveClients(clientList);
+      } catch (error) {
+        console.log('Loading from offline storage...');
+        clientList = await OfflineService.getClients();
+      }
       setClients(clientList);
     } catch (error) {
       console.error('Failed to load clients:', error);
@@ -35,22 +46,21 @@ export function ClientDirectory() {
     if (searchTerm) {
       filtered = filtered.filter(client =>
         client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        client.contact_person?.toLowerCase().includes(searchTerm.toLowerCase())
+        client.contact_name?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     if (selectedRegion) {
-      filtered = filtered.filter(client => client.region === selectedRegion);
+      filtered = filtered.filter(client => client.location === selectedRegion);
     }
 
     setFilteredClients(filtered);
   };
 
-  const regions = [...new Set(clients.map(client => client.region))];
+  const regions = [...new Set(clients.map(client => client.location).filter(Boolean))];
 
   const handleStartVisit = (client: Client) => {
-    // Navigate to visit logger with pre-selected client
-    console.log('Starting visit for:', client.name);
+    navigate('/visits', { state: { selectedClient: client } });
   };
 
   if (loading) {
@@ -103,28 +113,32 @@ export function ClientDirectory() {
               <div className="flex-1">
                 <h3 className="font-semibold text-gray-900">{client.name}</h3>
                 
-                {client.contact_person && (
+                {client.contact_name && (
                   <div className="flex items-center mt-1 text-sm text-gray-600">
                     <User size={14} className="mr-1" />
-                    {client.contact_person}
+                    {client.contact_name}
                   </div>
                 )}
                 
-                <div className="flex items-center mt-1 text-sm text-gray-600">
-                  <MapPin size={14} className="mr-1" />
-                  {client.address}
-                </div>
+                {client.location && (
+                  <div className="flex items-center mt-1 text-sm text-gray-600">
+                    <MapPin size={14} className="mr-1" />
+                    {client.location}
+                  </div>
+                )}
                 
-                {client.phone && (
+                {client.contact_phone && (
                   <div className="flex items-center mt-1 text-sm text-gray-600">
                     <Phone size={14} className="mr-1" />
-                    {client.phone}
+                    {client.contact_phone}
                   </div>
                 )}
                 
-                <span className="inline-block mt-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
-                  {client.region}
-                </span>
+                {client.location && (
+                  <span className="inline-block mt-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
+                    {client.location}
+                  </span>
+                )}
               </div>
               
               <button

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Package, CheckSquare, RotateCcw, Wifi, WifiOff } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { OfflineService } from '../services/offline';
 import { SyncService } from '../services/sync';
+import { DatabaseService } from '../services/database';
 
 interface DashboardStats {
   plannedVisitsToday: number;
@@ -11,6 +13,7 @@ interface DashboardStats {
 }
 
 export function Dashboard() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats>({
     plannedVisitsToday: 0,
     ordersPlaced: 0,
@@ -19,8 +22,10 @@ export function Dashboard() {
   });
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [syncing, setSyncing] = useState(false);
+  const [currentRep, setCurrentRep] = useState<any>(null);
 
   useEffect(() => {
+    loadCurrentRep();
     loadStats();
     
     const handleOnline = () => setIsOnline(true);
@@ -35,9 +40,19 @@ export function Dashboard() {
     };
   }, []);
 
+  const loadCurrentRep = async () => {
+    try {
+      const rep = await DatabaseService.getCurrentRep();
+      setCurrentRep(rep);
+    } catch (error) {
+      console.error('Failed to load current rep:', error);
+    }
+  };
+
   const loadStats = async () => {
     try {
-      const dashboardStats = await OfflineService.getDashboardStats('current-rep-id');
+      const repId = currentRep?.id || 'demo-rep-id';
+      const dashboardStats = await OfflineService.getDashboardStats(repId);
       setStats(dashboardStats);
     } catch (error) {
       console.error('Failed to load dashboard stats:', error);
@@ -141,11 +156,17 @@ export function Dashboard() {
       <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
         <h3 className="font-semibold text-gray-900 mb-3">Quick Actions</h3>
         <div className="grid grid-cols-2 gap-3">
-          <button className="p-3 text-left bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors">
+          <button 
+            onClick={() => navigate('/visits')}
+            className="p-3 text-left bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors"
+          >
             <p className="font-medium text-blue-900">New Visit</p>
             <p className="text-sm text-blue-700">Log a client visit</p>
           </button>
-          <button className="p-3 text-left bg-green-50 rounded-lg border border-green-200 hover:bg-green-100 transition-colors">
+          <button 
+            onClick={() => navigate('/orders')}
+            className="p-3 text-left bg-green-50 rounded-lg border border-green-200 hover:bg-green-100 transition-colors"
+          >
             <p className="font-medium text-green-900">Create Order</p>
             <p className="text-sm text-green-700">Place a new order</p>
           </button>
@@ -155,15 +176,14 @@ export function Dashboard() {
       {/* Today's Schedule */}
       <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
         <h3 className="font-semibold text-gray-900 mb-3">Today's Schedule</h3>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
-            <span className="text-sm text-gray-700">Visit: Downtown Wine Co.</span>
-            <span className="text-xs text-gray-500">10:00 AM</span>
-          </div>
-          <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
-            <span className="text-sm text-gray-700">Visit: Metro Liquor Store</span>
-            <span className="text-xs text-gray-500">2:30 PM</span>
-          </div>
+        <div className="text-center py-4">
+          <p className="text-gray-500 text-sm">No scheduled visits for today</p>
+          <button 
+            onClick={() => navigate('/visits')}
+            className="mt-2 text-blue-600 text-sm hover:text-blue-700"
+          >
+            Plan a visit
+          </button>
         </div>
       </div>
     </div>

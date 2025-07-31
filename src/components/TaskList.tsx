@@ -1,19 +1,45 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, Clock, AlertCircle, Camera } from 'lucide-react';
 import { OfflineService } from '../services/offline';
+import { DatabaseService } from '../services/database';
 import { RepTask } from '../types';
 
 export function TaskList() {
   const [tasks, setTasks] = useState<RepTask[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentRep, setCurrentRep] = useState<any>(null);
+  const [filter, setFilter] = useState('all');
 
   useEffect(() => {
+    loadCurrentRep();
     loadTasks();
   }, []);
 
+  const loadCurrentRep = async () => {
+    try {
+      const rep = await DatabaseService.getCurrentRep();
+      setCurrentRep(rep);
+    } catch (error) {
+      console.error('Failed to load current rep:', error);
+    }
+  };
+
   const loadTasks = async () => {
     try {
-      const taskList = await OfflineService.getTasks('current-rep-id');
+      const repId = currentRep?.id || 'demo-rep-id';
+      let taskList;
+      
+      try {
+        taskList = await DatabaseService.getRepTasks(repId);
+        // Save to offline storage
+        for (const task of taskList) {
+          await OfflineService.updateTask(task.id, { ...task, sync_status: 'synced' });
+        }
+      } catch (error) {
+        console.log('Loading tasks from offline storage...');
+        taskList = await OfflineService.getTasks(repId);
+      }
+      
       setTasks(taskList);
     } catch (error) {
       console.error('Failed to load tasks:', error);
@@ -38,6 +64,7 @@ export function TaskList() {
       );
     } catch (error) {
       console.error('Failed to update task:', error);
+      alert('Failed to update task. Please try again.');
     }
   };
 
@@ -63,10 +90,15 @@ export function TaskList() {
     }
   };
 
-  const isOverdue = (dueDate?: string) => {
-    if (!dueDate) return false;
-    return new Date(dueDate) < new Date();
+  const isOverdue = (endDate?: string) => {
+    if (!endDate) return false;
+    return new Date(endDate) < new Date();
   };
+
+  const filteredTasks = tasks.filter(task => {
+    if (filter === 'all') return true;
+    return task.status === filter;
+  });
 
   if (loading) {
     return (
@@ -85,7 +117,12 @@ export function TaskList() {
         {['all', 'pending', 'in_progress', 'completed'].map(filter => (
           <button
             key={filter}
-            className="px-4 py-2 text-sm font-medium bg-white border border-gray-200 rounded-lg hover:bg-gray-50 whitespace-nowrap"
+            onClick={() => setFilter(filterOption)}
+            className={`px-4 py-2 text-sm font-medium border rounded-lg hover:bg-gray-50 whitespace-nowrap ${
+              filter === filterOption
+                ? 'bg-blue-600 text-white border-blue-600'
+                : 'bg-white border-gray-200 text-gray-700'
+            }`}
           >
             {filter.replace('_', ' ').toUpperCase()}
           </button>
@@ -94,14 +131,14 @@ export function TaskList() {
 
       {/* Task List */}
       <div className="space-y-3">
-        {tasks.map(task => (
+        {filteredTasks.map(task => (
           <div key={task.id} className={`bg-white rounded-lg p-4 shadow-sm border ${getStatusColor(task.status)}`}>
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <div className="flex items-center space-x-2 mb-2">
                   {getStatusIcon(task.status)}
                   <h3 className="font-medium text-gray-900">{task.title}</h3>
-                  {task.due_date && isOverdue(task.due_date) && task.status !== 'completed' && (
+                  {task.end_date && isOverdue(task.end_date) && task.status !== 'completed' && (
                     <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded">
                       Overdue
                     </span>
@@ -112,16 +149,10 @@ export function TaskList() {
                   <p className="text-sm text-gray-600 mb-2">{task.description}</p>
                 )}
                 
-                {task.due_date && (
+                {task.end_date && (
                   <p className="text-xs text-gray-500">
-                    Due: {new Date(task.due_date).toLocaleDateString()}
+                    Due: {new Date(task.end_date).toLocaleDateString()}
                   </p>
-                )}
-                
-                {task.notes && (
-                  <div className="mt-2 p-2 bg-gray-50 rounded text-sm">
-                    <strong>Notes:</strong> {task.notes}
-                  </div>
                 )}
               </div>
               
@@ -145,10 +176,6 @@ export function TaskList() {
                     </button>
                   </>
                 )}
-                
-                <button className="p-2 text-gray-600 hover:text-gray-900 border border-gray-200 rounded">
-                  <Camera size={16} />
-                </button>
               </div>
             </div>
             
@@ -162,9 +189,11 @@ export function TaskList() {
         ))}
       </div>
 
-      {tasks.length === 0 && (
+      {filteredTasks.length === 0 && (
         <div className="text-center py-8">
-          <p className="text-gray-500">No tasks assigned</p>
+          <p className="text-gray-500">
+            {filter === 'all' ? 'No tasks assigned' : `No ${filter.replace('_', ' ')} tasks`}
+          </p>
         </div>
       )}
     </div>

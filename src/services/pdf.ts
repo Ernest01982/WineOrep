@@ -21,8 +21,8 @@ export class PDFService {
     // Client details
     doc.text('BILL TO:', 20, 80);
     doc.text(client.name, 20, 90);
-    doc.text(client.address, 20, 100);
-    if (client.phone) doc.text(`Phone: ${client.phone}`, 20, 110);
+    if (client.location) doc.text(client.location, 20, 100);
+    if (client.contact_phone) doc.text(`Phone: ${client.contact_phone}`, 20, 110);
     
     // Order items table header
     doc.text('PRODUCT', 20, 140);
@@ -40,10 +40,11 @@ export class PDFService {
     orderItems.forEach((item) => {
       doc.text(item.product.name, 20, yPosition);
       doc.text(item.quantity.toString(), 100, yPosition);
-      doc.text(`$${item.unit_price.toFixed(2)}`, 130, yPosition);
-      doc.text(`$${item.line_total.toFixed(2)}`, 160, yPosition);
+      doc.text(`$${item.price.toFixed(2)}`, 130, yPosition);
+      const lineTotal = item.quantity * item.price;
+      doc.text(`$${lineTotal.toFixed(2)}`, 160, yPosition);
       
-      subtotal += item.line_total;
+      subtotal += lineTotal;
       yPosition += 10;
     });
     
@@ -54,20 +55,32 @@ export class PDFService {
     
     doc.text(`Subtotal: $${subtotal.toFixed(2)}`, 130, yPosition);
     
-    if (order.discount_percentage) {
+    if (order.discount_percent && order.discount_percent > 0) {
       yPosition += 10;
-      const discountAmount = subtotal * (order.discount_percentage / 100);
-      doc.text(`Discount (${order.discount_percentage}%): -$${discountAmount.toFixed(2)}`, 130, yPosition);
+      doc.text(`Discount (${order.discount_percent}%): -$${order.discount_value?.toFixed(2) || '0.00'}`, 130, yPosition);
     }
     
     yPosition += 10;
     doc.setFontSize(14);
-    doc.text(`TOTAL: $${order.total_amount.toFixed(2)}`, 130, yPosition);
+    const total = subtotal - (order.discount_value || 0);
+    doc.text(`TOTAL: $${total.toFixed(2)}`, 130, yPosition);
     
     if (order.is_free_stock) {
       yPosition += 15;
       doc.setFontSize(12);
       doc.text('** FREE STOCK ORDER **', 20, yPosition);
+      if (order.free_stock_reason) {
+        yPosition += 10;
+        doc.text(`Reason: ${order.free_stock_reason}`, 20, yPosition);
+      }
+    }
+    
+    if (order.notes) {
+      yPosition += 15;
+      doc.setFontSize(10);
+      doc.text('Notes:', 20, yPosition);
+      yPosition += 8;
+      doc.text(order.notes, 20, yPosition);
     }
     
     return doc.output('blob');
