@@ -53,11 +53,12 @@ export class DatabaseService {
     const { data, error } = await supabase
       .from('reps')
       .select('*')
-      .limit(1)
-      .single();
+      .limit(1);
     
     if (error) throw error;
-    return data;
+    
+    // Return the first rep if available, otherwise null
+    return data && data.length > 0 ? data[0] : null;
   }
 
   static async getClientProducts(clientId: string) {

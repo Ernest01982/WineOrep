@@ -43,7 +43,12 @@ export function Dashboard() {
   const loadCurrentRep = async () => {
     try {
       const rep = await DatabaseService.getCurrentRep();
-      setCurrentRep(rep);
+      if (rep) {
+        setCurrentRep(rep);
+      } else {
+        console.warn('No representative found in database');
+        // You might want to show a message to the user or redirect to setup
+      }
     } catch (error) {
       console.error('Failed to load current rep:', error);
     }
