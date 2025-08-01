@@ -22,14 +22,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+
       if (session?.user) {
-        fetchCurrentRep(session.user.id);
-      } else {
-        setLoading(false);
+        await fetchCurrentRep(session.user.id);
       }
+
+      setLoading(false); // Always stop loading
     });
 
     // Listen for auth changes
@@ -38,14 +39,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      
+
       if (session?.user) {
         await fetchCurrentRep(session.user.id);
       } else {
         setCurrentRep(null);
-        setLoading(false);
-        setLoading(false);
       }
+
+      setLoading(false); // Always stop loading
     });
 
     return () => subscription?.unsubscribe();
@@ -68,8 +69,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Error fetching current rep:', error);
       setCurrentRep(null);
-    } finally {
-      setLoading(false);
     }
   };
 
