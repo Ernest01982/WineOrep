@@ -388,7 +388,6 @@ export function OrderForm() {
         <div
           className="fixed inset-0 z-0"
           onClick={() => setShowClientDropdown(false)}
-        />
       )}
     </div>
   );
