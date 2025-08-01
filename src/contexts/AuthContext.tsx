@@ -29,6 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         fetchCurrentRep(session.user.id);
       } else {
         setLoading(false);
+        setLoading(false);
       }
     });
 
@@ -44,10 +45,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         setCurrentRep(null);
         setLoading(false);
+        setLoading(false);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => subscription?.unsubscribe();
   }, []);
 
   const fetchCurrentRep = async (userId: string) => {
