@@ -1,15 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Minus, Download, Trash2 } from 'lucide-react';
-import { Combobox } from '@headlessui/react';
-import { CheckIcon, ChevronUpDownIcon } from '@heroicons/react/20/solid';
 import { OfflineService } from '../services/offline';
 import { DatabaseService } from '../services/database';
 import { PDFService } from '../services/pdf';
 import { Product, Order, OrderItem, Client, StockDiscountReason } from '../types';
-
-function classNames(...classes) {
-  return classes.filter(Boolean).join(' ');
-}
 
 export function OrderForm() {
   const [clients, setClients] = useState<Client[]>([]);
@@ -24,6 +18,8 @@ export function OrderForm() {
   const [orderNotes, setOrderNotes] = useState('');
   const [loading, setLoading] = useState(true);
   const [currentRep, setCurrentRep] = useState<any>(null);
+  const [clientSearch, setClientSearch] = useState('');
+  const [showClientDropdown, setShowClientDropdown] = useState(false);
 
   useEffect(() => {
     loadCurrentRep();
@@ -68,6 +64,10 @@ export function OrderForm() {
   };
 
   const selectedClient = clients.find(c => c.id === selectedClientId);
+  const filteredClients = clients.filter(client =>
+    client.name.toLowerCase().includes(clientSearch.toLowerCase()) ||
+    (client.location && client.location.toLowerCase().includes(clientSearch.toLowerCase()))
+  );
 
   const addProduct = (product: Product) => {
     const existingItem = orderItems.find(item => item.product_id === product.id);
@@ -163,54 +163,233 @@ export function OrderForm() {
       {/* Client Search Combobox */}
       <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
         <label className="block text-sm font-medium text-gray-700 mb-2">Select Client</label>
-        <Combobox value={selectedClientId} onChange={setSelectedClientId}>
-          <div className="relative">
-            <Combobox.Input
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              onChange={(e) => {
-                const search = e.target.value.toLowerCase();
-                const match = clients.find(c => c.name.toLowerCase().includes(search));
-                if (match) setSelectedClientId(match.id);
-              }}
-              displayValue={(id) => clients.find(c => c.id === id)?.name || ''}
-              placeholder="Search client..."
-            />
-            <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-2">
-              <ChevronUpDownIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
-            </Combobox.Button>
-            <Combobox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-              {clients.map((client) => (
-                <Combobox.Option
+        <div className="relative">
+          <input
+            type="text"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            value={clientSearch}
+            onChange={(e) => {
+              setClientSearch(e.target.value);
+              setShowClientDropdown(true);
+            }}
+            onFocus={() => setShowClientDropdown(true)}
+            placeholder="Search client..."
+          />
+          {showClientDropdown && filteredClients.length > 0 && (
+            <div className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5">
+              {filteredClients.map((client) => (
+                <div
                   key={client.id}
-                  value={client.id}
-                  className={({ active }) =>
-                    classNames(
-                      'relative cursor-default select-none py-2 pl-3 pr-9',
-                      active ? 'bg-blue-600 text-white' : 'text-gray-900'
-                    )
-                  }
+                  className="relative cursor-pointer select-none py-2 pl-3 pr-9 hover:bg-blue-600 hover:text-white text-gray-900"
+                  onClick={() => {
+                    setSelectedClientId(client.id);
+                    setClientSearch(client.name);
+                    setShowClientDropdown(false);
+                  }}
                 >
-                  {({ selected, active }) => (
-                    <>
-                      <span className={classNames('block truncate', selected ? 'font-semibold' : '')}>
-                        {client.name} – {client.region}
-                      </span>
-                      {selected ? (
-                        <span className={classNames('absolute inset-y-0 right-0 flex items-center pr-4', active ? 'text-white' : 'text-blue-600')}>
-                          <CheckIcon className="h-5 w-5" aria-hidden="true" />
-                        </span>
-                      ) : null}
-                    </>
-                  )}
-                </Combobox.Option>
+                  <span className="block truncate">
+                    {client.name} – {client.location || 'No location'}
+                  </span>
+                </div>
               ))}
-            </Combobox.Options>
-          </div>
-        </Combobox>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Remaining sections remain unchanged */}
-      {/* You can keep the product list, order summary, and button logic exactly as in your current file */}
+      {/* Product Selection */}
+      <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Add Products</h3>
+        <div className="grid grid-cols-1 gap-3">
+          {products.map((product) => (
+            <div key={product.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+              <div className="flex-1">
+                <h4 className="font-medium text-gray-900">{product.name}</h4>
+                <p className="text-sm text-gray-500">{product.category}</p>
+                <p className="text-sm font-medium text-gray-900">£{(product.price || 0).toFixed(2)}</p>
+              </div>
+              <button
+                onClick={() => addProduct(product)}
+                className="ml-4 bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Order Items */}
+      {orderItems.length > 0 && (
+        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Order Items</h3>
+          <div className="space-y-3">
+            {orderItems.map((item) => (
+              <div key={item.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                <div className="flex-1">
+                  <h4 className="font-medium text-gray-900">{item.product?.name}</h4>
+                  <p className="text-sm text-gray-500">£{(item.unit_price || 0).toFixed(2)} each</p>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <button
+                    onClick={() => updateQuantity(item.product_id, Math.max(1, item.quantity - 1))}
+                    className="p-1 text-gray-500 hover:text-gray-700"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <span className="font-medium text-gray-900 min-w-[2rem] text-center">{item.quantity}</span>
+                  <button
+                    onClick={() => updateQuantity(item.product_id, item.quantity + 1)}
+                    className="p-1 text-gray-500 hover:text-gray-700"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                  <span className="font-medium text-gray-900 min-w-[4rem] text-right">
+                    £{(item.quantity * (item.unit_price || 0)).toFixed(2)}
+                  </span>
+                  <button
+                    onClick={() => removeItem(item.id)}
+                    className="p-1 text-red-500 hover:text-red-700"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Order Options */}
+      {orderItems.length > 0 && (
+        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Order Options</h3>
+          
+          <div className="space-y-4">
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="freeStock"
+                checked={isFreeStock}
+                onChange={(e) => setIsFreeStock(e.target.checked)}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label htmlFor="freeStock" className="ml-2 text-sm font-medium text-gray-700">
+                Free Stock
+              </label>
+            </div>
+
+            {isFreeStock && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Free Stock Reason
+                </label>
+                <textarea
+                  value={freeStockReason}
+                  onChange={(e) => setFreeStockReason(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  rows={2}
+                  placeholder="Enter reason for free stock..."
+                />
+              </div>
+            )}
+
+            {!isFreeStock && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Discount Percentage
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={discountPercentage}
+                  onChange={(e) => setDiscountPercentage(Number(e.target.value))}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="0"
+                />
+              </div>
+            )}
+
+            {discountPercentage > 0 && !isFreeStock && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Discount Reason
+                </label>
+                <select
+                  value={selectedDiscountReason}
+                  onChange={(e) => setSelectedDiscountReason(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Select reason...</option>
+                  {discountReasons.filter(r => r.reason_type === 'discount').map((reason) => (
+                    <option key={reason.id} value={reason.label}>
+                      {reason.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Order Notes
+              </label>
+              <textarea
+                value={orderNotes}
+                onChange={(e) => setOrderNotes(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                rows={3}
+                placeholder="Add any notes for this order..."
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Order Summary */}
+      {orderItems.length > 0 && (
+        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Order Summary</h3>
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <span className="text-gray-600">Subtotal:</span>
+              <span className="font-medium">£{calculateSubtotal().toFixed(2)}</span>
+            </div>
+            {(discountPercentage > 0 || isFreeStock) && (
+              <div className="flex justify-between">
+                <span className="text-gray-600">
+                  Discount ({isFreeStock ? '100' : discountPercentage}%):
+                </span>
+                <span className="font-medium text-red-600">-£{calculateDiscount().toFixed(2)}</span>
+              </div>
+            )}
+            <div className="flex justify-between text-lg font-bold border-t pt-2">
+              <span>Total:</span>
+              <span>£{calculateTotal().toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Submit Button */}
+      {orderItems.length > 0 && (
+        <button
+          onClick={submitOrder}
+          className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+        >
+          <Download className="w-5 h-5" />
+          <span>Create Order & Download PDF</span>
+        </button>
+      )}
+
+      {/* Click outside to close dropdown */}
+      {showClientDropdown && (
+        <div
+          className="fixed inset-0 z-0"
+          onClick={() => setShowClientDropdown(false)}
+        />
+      </div>
     </div>
   );
 }
