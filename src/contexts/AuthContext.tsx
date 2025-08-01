@@ -29,7 +29,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         fetchCurrentRep(session.user.id);
       } else {
         setLoading(false);
-        setLoading(false);
       }
     });
 
