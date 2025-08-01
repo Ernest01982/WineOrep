@@ -389,7 +389,7 @@ export function OrderForm() {
           className="fixed inset-0 z-0"
           onClick={() => setShowClientDropdown(false)}
         />
-      </div>
+      )}
     </div>
   );
 }
