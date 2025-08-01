@@ -3,7 +3,7 @@ import { Calendar, Package, CheckSquare, RotateCcw, Wifi, WifiOff } from 'lucide
 import { useNavigate } from 'react-router-dom';
 import { OfflineService } from '../services/offline';
 import { SyncService } from '../services/sync';
-import { DatabaseService } from '../services/database';
+import { useAuth } from '../contexts/AuthContext';
 
 interface DashboardStats {
   plannedVisitsToday: number;
@@ -14,6 +14,7 @@ interface DashboardStats {
 
 export function Dashboard() {
   const navigate = useNavigate();
+  const { currentRep } = useAuth();
   const [stats, setStats] = useState<DashboardStats>({
     plannedVisitsToday: 0,
     ordersPlaced: 0,
@@ -22,10 +23,8 @@ export function Dashboard() {
   });
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [syncing, setSyncing] = useState(false);
-  const [currentRep, setCurrentRep] = useState<any>(null);
 
   useEffect(() => {
-    loadCurrentRep();
     loadStats();
     
     const handleOnline = () => setIsOnline(true);
@@ -39,20 +38,6 @@ export function Dashboard() {
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
-
-  const loadCurrentRep = async () => {
-    try {
-      const rep = await DatabaseService.getCurrentRep();
-      if (rep) {
-        setCurrentRep(rep);
-      } else {
-        console.warn('No representative found in database');
-        // You might want to show a message to the user or redirect to setup
-      }
-    } catch (error) {
-      console.error('Failed to load current rep:', error);
-    }
-  };
 
   const loadStats = async () => {
     try {

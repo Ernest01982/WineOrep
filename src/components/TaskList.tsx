@@ -2,27 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { CheckCircle, Clock, AlertCircle, Camera } from 'lucide-react';
 import { OfflineService } from '../services/offline';
 import { DatabaseService } from '../services/database';
+import { useAuth } from '../contexts/AuthContext';
 import { RepTask } from '../types';
 
 export function TaskList() {
+  const { currentRep } = useAuth();
   const [tasks, setTasks] = useState<RepTask[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentRep, setCurrentRep] = useState<any>(null);
   const [filter, setFilter] = useState('all');
 
   useEffect(() => {
-    loadCurrentRep();
     loadTasks();
   }, []);
-
-  const loadCurrentRep = async () => {
-    try {
-      const rep = await DatabaseService.getCurrentRep();
-      setCurrentRep(rep);
-    } catch (error) {
-      console.error('Failed to load current rep:', error);
-    }
-  };
 
   const loadTasks = async () => {
     try {
@@ -114,9 +105,9 @@ export function TaskList() {
 
       {/* Task Filters */}
       <div className="flex space-x-2 overflow-x-auto pb-2">
-        {['all', 'pending', 'in_progress', 'completed'].map(filter => (
+        {['all', 'pending', 'in_progress', 'completed'].map(filterOption => (
           <button
-            key={filter}
+            key={filterOption}
             onClick={() => setFilter(filterOption)}
             className={`px-4 py-2 text-sm font-medium border rounded-lg hover:bg-gray-50 whitespace-nowrap ${
               filter === filterOption
@@ -124,7 +115,7 @@ export function TaskList() {
                 : 'bg-white border-gray-200 text-gray-700'
             }`}
           >
-            {filter.replace('_', ' ').toUpperCase()}
+            {filterOption.replace('_', ' ').toUpperCase()}
           </button>
         ))}
       </div>

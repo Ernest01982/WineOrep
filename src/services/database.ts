@@ -48,17 +48,22 @@ export class DatabaseService {
   }
 
   static async getCurrentRep() {
-    // For demo purposes, return the first rep
-    // In production, this would be based on authentication
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) return null;
+    
     const { data, error } = await supabase
       .from('reps')
       .select('*')
-      .limit(1);
+      .eq('id', user.id)
+      .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching current rep:', error);
+      return null;
+    }
     
-    // Return the first rep if available, otherwise null
-    return data && data.length > 0 ? data[0] : null;
+    return data;
   }
 
   static async getClientProducts(clientId: string) {

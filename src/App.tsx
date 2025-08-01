@@ -1,5 +1,8 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { LoginPage } from './components/LoginPage';
 import { Layout } from './components/Layout';
 import { Dashboard } from './components/Dashboard';
 import { ClientDirectory } from './components/ClientDirectory';
@@ -27,18 +30,62 @@ function App() {
   }, []);
 
   return (
-    <Router>
-      <Layout>
+    <AuthProvider>
+      <Router>
         <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/clients" element={<ClientDirectory />} />
-          <Route path="/visits" element={<VisitLogger />} />
-          <Route path="/orders" element={<OrderForm />} />
-          <Route path="/tasks" element={<TaskList />} />
-          <Route path="/sync" element={<SyncQueue />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/" element={
+            <ProtectedRoute>
+              <Layout>
+                <Dashboard />
+              </Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Layout>
+                <Dashboard />
+              </Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/clients" element={
+            <ProtectedRoute>
+              <Layout>
+                <ClientDirectory />
+              </Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/visits" element={
+            <ProtectedRoute>
+              <Layout>
+                <VisitLogger />
+              </Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/orders" element={
+            <ProtectedRoute>
+              <Layout>
+                <OrderForm />
+              </Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/tasks" element={
+            <ProtectedRoute>
+              <Layout>
+                <TaskList />
+              </Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/sync" element={
+            <ProtectedRoute>
+              <Layout>
+                <SyncQueue />
+              </Layout>
+            </ProtectedRoute>
+          } />
         </Routes>
-      </Layout>
-    </Router>
+      </Router>
+    </AuthProvider>
   );
 }
 

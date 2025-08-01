@@ -3,9 +3,11 @@ import { Plus, Minus, Download, Trash2 } from 'lucide-react';
 import { OfflineService } from '../services/offline';
 import { DatabaseService } from '../services/database';
 import { PDFService } from '../services/pdf';
+import { useAuth } from '../contexts/AuthContext';
 import { Product, Order, OrderItem, Client, StockDiscountReason } from '../types';
 
 export function OrderForm() {
+  const { currentRep } = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [discountReasons, setDiscountReasons] = useState<StockDiscountReason[]>([]);
@@ -17,23 +19,12 @@ export function OrderForm() {
   const [freeStockReason, setFreeStockReason] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
   const [loading, setLoading] = useState(true);
-  const [currentRep, setCurrentRep] = useState<any>(null);
   const [clientSearch, setClientSearch] = useState('');
   const [showClientDropdown, setShowClientDropdown] = useState(false);
 
   useEffect(() => {
-    loadCurrentRep();
     loadData();
   }, []);
-
-  const loadCurrentRep = async () => {
-    try {
-      const rep = await DatabaseService.getCurrentRep();
-      setCurrentRep(rep);
-    } catch (error) {
-      console.error('Failed to load current rep:', error);
-    }
-  };
 
   const loadData = async () => {
     try {

@@ -3,20 +3,20 @@ import { Clock, MapPin, FileText, CheckCircle } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { OfflineService } from '../services/offline';
 import { DatabaseService } from '../services/database';
+import { useAuth } from '../contexts/AuthContext';
 import { Visit, Client } from '../types';
 
 export function VisitLogger() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { currentRep } = useAuth();
   const [activeVisit, setActiveVisit] = useState<Visit | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState('');
   const [notes, setNotes] = useState('');
   const [visitType, setVisitType] = useState<'good' | 'missed' | 'problem' | 'bad'>('good');
-  const [currentRep, setCurrentRep] = useState<any>(null);
 
   useEffect(() => {
-    loadCurrentRep();
     loadClients();
     
     // Check if client was pre-selected from navigation
@@ -24,15 +24,6 @@ export function VisitLogger() {
       setSelectedClientId(location.state.selectedClient.id);
     }
   }, []);
-
-  const loadCurrentRep = async () => {
-    try {
-      const rep = await DatabaseService.getCurrentRep();
-      setCurrentRep(rep);
-    } catch (error) {
-      console.error('Failed to load current rep:', error);
-    }
-  };
 
   const loadClients = async () => {
     try {
