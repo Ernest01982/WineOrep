@@ -256,7 +256,7 @@ export function OrderForm() {
               <div key={item.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
                 <div className="flex-1">
                   <p className="font-medium text-gray-900">{item.product.name}</p>
-                  <p className="text-sm text-gray-600">${item.unit_price.toFixed(2)} each</p>
+                  <p className="text-sm text-gray-600">${(item.unit_price || 0).toFixed(2)} each</p>
                 </div>
                 
                 <div className="flex items-center space-x-2">
@@ -277,7 +277,7 @@ export function OrderForm() {
                   </button>
                   
                   <div className="w-20 text-right">
-                    <span className="font-medium">${(item.quantity * item.unit_price).toFixed(2)}</span>
+                    <span className="font-medium">${(item.quantity * (item.unit_price || 0)).toFixed(2)}</span>
                   </div>
                   
                   <button
