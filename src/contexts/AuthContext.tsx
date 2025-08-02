@@ -29,6 +29,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (session?.user) {
         fetchCurrentRep(session.user.id);
       } else {
+        setLoading(false);
+      } else {
         setLoading(false); // ✅ Fix: ensures loading state resolves even if not logged in
       }
     });
@@ -45,10 +47,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         setCurrentRep(null);
         setLoading(false);
+        setLoading(false);
       }
     });
 
-    return () => subscription?.unsubscribe();
+    return () => subscription.unsubscribe();
   }, []);
 
   const fetchCurrentRep = async (userId: string) => {
