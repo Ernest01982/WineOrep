@@ -21,35 +21,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Initial session check
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-
-      if (session?.user) {
-        fetchCurrentRep(session.user.id);
-      } else {
-        setLoading(false);
-      }
-    });
-
-    // Listen for auth state changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const init = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
       setUser(session?.user ?? null);
 
       if (session?.user) {
         await fetchCurrentRep(session.user.id);
-      } else {
-        setCurrentRep(null);
-        setLoading(false);
+      }
+
+      setLoading(false);
+    };
+
+    init();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+
+        if (session?.user) {
+          await fetchCurrentRep(session.user.id);
+        } else {
+          setCurrentRep(null);
+        }
+
         setLoading(false);
       }
-    });
+    );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const fetchCurrentRep = async (userId: string) => {
@@ -60,28 +63,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('id', userId)
         .single();
 
-      if (error) {
+      if (error || !data) {
         console.error('Error fetching current rep:', error);
         setCurrentRep(null);
       } else {
         setCurrentRep(data);
       }
-    } catch (error) {
-      console.error('Error fetching current rep:', error);
+    } catch (err) {
+      console.error('Unexpected error fetching rep:', err);
       setCurrentRep(null);
-    } finally {
-      setLoading(false); // ✅ ensure loading ends
     }
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
     return { error };
   };
 
   const signOut = async () => {
     await supabase.auth.signOut();
     setCurrentRep(null);
+    setUser(null);
+    setSession(null);
   };
 
   const value = {
