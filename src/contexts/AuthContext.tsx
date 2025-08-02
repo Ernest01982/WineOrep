@@ -30,8 +30,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         fetchCurrentRep(session.user.id);
       } else {
         setLoading(false);
-      } else {
-        setLoading(false); // ✅ Fix: ensures loading state resolves even if not logged in
       }
     });
 
