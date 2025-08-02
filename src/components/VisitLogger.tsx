@@ -80,8 +80,7 @@ export function VisitLogger() {
       setSelectedClientId('');
       setNotes('');
       setVisitType('good');
-      alert('Visit logged successfully!');
-      navigate('/');
+      navigate('/dashboard');
     } catch (error) {
       console.error('Failed to end visit:', error);
       alert('Failed to end visit. Please try again.');

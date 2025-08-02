@@ -196,8 +196,8 @@ export function OrderForm() {
             <div key={product.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
               <div className="flex-1">
                 <h4 className="font-medium text-gray-900">{product.name}</h4>
-                <p className="text-sm text-gray-500">{product.category}</p>
-                <p className="text-sm font-medium text-gray-900">£{(product.price || 0).toFixed(2)}</p>
+                <p className="text-sm text-gray-500">R{(item.unit_price || 0).toFixed(2)} each</p>
+                <p className="text-sm font-medium text-gray-900">R{(product.price || 0).toFixed(2)}</p>
               </div>
               <button
                 onClick={() => addProduct(product)}
@@ -236,7 +236,7 @@ export function OrderForm() {
                     <Plus className="w-4 h-4" />
                   </button>
                   <span className="font-medium text-gray-900 min-w-[4rem] text-right">
-                    £{(item.quantity * (item.unit_price || 0)).toFixed(2)}
+                    R{(item.quantity * (item.unit_price || 0)).toFixed(2)}
                   </span>
                   <button
                     onClick={() => removeItem(item.id)}
@@ -345,19 +345,19 @@ export function OrderForm() {
           <div className="space-y-2">
             <div className="flex justify-between">
               <span className="text-gray-600">Subtotal:</span>
-              <span className="font-medium">£{calculateSubtotal().toFixed(2)}</span>
+              <span className="font-medium">R{calculateSubtotal().toFixed(2)}</span>
             </div>
             {(discountPercentage > 0 || isFreeStock) && (
               <div className="flex justify-between">
                 <span className="text-gray-600">
                   Discount ({isFreeStock ? '100' : discountPercentage}%):
                 </span>
-                <span className="font-medium text-red-600">-£{calculateDiscount().toFixed(2)}</span>
+                <span className="font-medium text-red-600">-R{calculateDiscount().toFixed(2)}</span>
               </div>
             )}
             <div className="flex justify-between text-lg font-bold border-t pt-2">
               <span>Total:</span>
-              <span>£{calculateTotal().toFixed(2)}</span>
+              <span>R{calculateTotal().toFixed(2)}</span>
             </div>
           </div>
         </div>
