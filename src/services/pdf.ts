@@ -40,9 +40,9 @@ export class PDFService {
     orderItems.forEach((item) => {
       doc.text(item.product.name, 20, yPosition);
       doc.text(item.quantity.toString(), 100, yPosition);
-      doc.text(`$${item.unit_price.toFixed(2)}`, 130, yPosition);
+      doc.text(`R${item.unit_price.toFixed(2)}`, 130, yPosition);
       const lineTotal = item.quantity * item.unit_price;
-      doc.text(`$${lineTotal.toFixed(2)}`, 160, yPosition);
+      doc.text(`R${lineTotal.toFixed(2)}`, 160, yPosition);
       
       subtotal += lineTotal;
       yPosition += 10;
@@ -53,17 +53,17 @@ export class PDFService {
     doc.line(20, yPosition, 190, yPosition);
     yPosition += 10;
     
-    doc.text(`Subtotal: $${subtotal.toFixed(2)}`, 130, yPosition);
+    doc.text(`Subtotal: R${subtotal.toFixed(2)}`, 130, yPosition);
     
     if (order.discount_percent && order.discount_percent > 0) {
       yPosition += 10;
-      doc.text(`Discount (${order.discount_percent}%): -$${order.discount_value?.toFixed(2) || '0.00'}`, 130, yPosition);
+      doc.text(`Discount (${order.discount_percent}%): -R${order.discount_value?.toFixed(2) || '0.00'}`, 130, yPosition);
     }
     
     yPosition += 10;
     doc.setFontSize(14);
     const total = subtotal - (order.discount_value || 0);
-    doc.text(`TOTAL: $${total.toFixed(2)}`, 130, yPosition);
+    doc.text(`TOTAL: R${total.toFixed(2)}`, 130, yPosition);
     
     if (order.is_free_stock) {
       yPosition += 15;
